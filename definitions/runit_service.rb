@@ -83,7 +83,7 @@ EOF
   directory "#{sv_dir_name}/supervise" do
     owner params[:owner]
     group params[:group]
-    mode 0750
+    mode 00755
     action :create
   end
 
@@ -184,12 +184,15 @@ EOF
   ruby_block "supervise_#{params[:name]}_pipes_set_ownership" do
     block do
       Chef::Log.debug("Setting ownership on named pipes in '#{sv_dir_name}/supervise/'...")
-      ::Dir.glob("#{sv_dir_name}/supervise/*").each do | supervise_file |
+      ["#{sv_dir_name}/supervise/ok",
+        "#{sv_dir_name}/supervise/control",
+        "#{sv_dir_name}/supervise/status"].each do | supervise_file |
         file_resource = Chef::Resource::File.new(supervise_file)
         file_resource.owner(params[:owner])
         file_resource.group(params[:group])
+        current_file_resource = Chef::Resource::File.new(file_resource.name)
 
-        access_control = Chef::FileAccessControl.new(file_resource, file_resource.path)
+        access_control = Chef::FileAccessControl.new(current_file_resource, file_resource, Chef::Provider::File)
         Chef::Log.debug("Setting ownership for named pipe '#{supervise_file}' to #{file_resource.owner}:#{file_resource.group}...")
         access_control.set_all
       end
